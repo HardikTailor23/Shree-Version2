@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#6B1F2A">
+<title>Shree 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #F7EDDA;
+    --sidebar: #F1E3C4;
+    --accent: #6B1F2A;
+    --accent-dark: #471119;
+    --gold: #C9A24B;
+    --cream: #F5E6C8;
+    --text: #2a1207;
+    --muted: #8a7354;
+    --border: #E4CD9E;
+    --card: #ffffff;
+    --green: #2e7d4f;
+    --red: #c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight:500;
+    background: var(--bg);
+    color: var(--text);
+    display:flex;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* ---------- Sidebar (desktop) ---------- */
+  .sidebar{
+    width:220px;
+    background: linear-gradient(160deg,#6B1F2A 0%,#471119 100%);
+    border-right:3px solid var(--gold);
+    padding:20px 0;
+    flex-shrink:0;
+  }
+  .logo-block{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:14px 16px 18px 16px;
+    border-bottom:1.5px solid rgba(201,162,75,.4);
+    margin-bottom:10px;
+  }
+  .logo-block .app-name{
+    margin-top:8px;
+    font-family: Georgia, 'Source Serif 4', serif;
+    font-size:20px;
+    font-weight:700;
+    color: var(--cream);
+  }
+  .logo-block .app-tagline{
+    font-size:10px;
+    color: var(--gold);
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    margin-top:2px;
+  }
+  .nav-item{
+    padding:12px 20px;
+    cursor:pointer;
+    font-size:14px;
+    color: #EBD9AE;
+    border-left:3px solid transparent;
+    transition: all .15s;
+  }
+  .nav-item:hover{ background: rgba(201,162,75,0.16); }
+  .nav-item.active{
+    border-left:3px solid var(--gold);
+    background: rgba(201,162,75,0.22);
+    color: var(--cream);
+    font-weight:600;
+  }
+  /* ---------- Main ---------- */
+  .main{
+    flex:1;
+    padding:30px 40px;
+    max-width:1100px;
+  }
+  h2{
+    font-family: Georgia, 'Source Serif 4', serif;
+    margin-top:0;
+    color: var(--accent-dark);
+  }
+  .cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap:16px;
+    margin-bottom:28px;
+  }
+  .card{
+    background: var(--card);
+    border:1.5px solid var(--gold);
+    border-radius:14px;
+    padding:18px;
+    box-shadow:0 6px 14px rgba(107,31,42,.10);
+  }
+  .card .label{ font-size:12px; color:#8a6d3b; text-transform:uppercase; letter-spacing:.03em;}
+  .card .value{ font-size:24px; font-weight:700; margin-top:6px; font-family:Georgia,'Source Serif 4',serif; color:var(--accent);}
+  .card .value.green{ color: var(--green); }
+  .card .value.red{ color: var(--red); }
+
+  form{
+    background: var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:24px;
+    max-width:520px;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin:14px 0 6px 0;
+    font-weight:600;
+  }
+  input[type=text], input[type=number], input[type=date], textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--text);
+  }
+  textarea{ resize:vertical; min-height:60px; }
+  button{
+    background: var(--accent);
+    color:#fff;
+    border:none;
+    padding:11px 22px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:18px;
+  }
+  button:hover{ background: var(--accent-dark); }
+  button.secondary{
+    background:transparent;
+    color: var(--muted);
+    border:1px solid var(--border);
+  }
+  button.danger{ background: var(--red); }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background: var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    font-size:13px;
+  }
+  th, td{
+    text-align:left;
+    padding:12px 14px;
+    border-bottom:1px solid var(--border);
+  }
+  td{ font-weight:600; color:var(--text); }
+  th{
+    background: var(--sidebar);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    color:#6B1F2A;
+    font-weight:700;
+  }
+  tr:last-child td{ border-bottom:none; }
+  .badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .badge.active{ background:var(--accent); color:var(--cream); }
+  .badge.done{ background:#e7f2ea; color:var(--green); border:1px solid var(--green); }
+  .row-actions button{ margin:0 4px 0 0; padding:6px 12px; font-size:12px; }
+  .menu-btn{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--accent-dark);
+    border-radius:8px;
+    padding:3px 12px;
+    font-size:20px;
+    line-height:1;
+    margin:0;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .menu-btn:hover{ background:rgba(107,31,42,0.06); }
+  .row-menu{
+    display:none;
+    position:fixed;
+    width:140px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px;
+    box-shadow:0 8px 22px rgba(0,0,0,0.18);
+    z-index:1200;
+    overflow:hidden;
+  }
+  .row-menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:#fff;
+    color:var(--text);
+    border:none;
+    border-bottom:1px solid var(--border);
+    padding:12px 16px;
+    margin:0;
+    font-size:14px;
+    font-weight:600;
+    border-radius:0;
+    cursor:pointer;
+  }
+  .row-menu button:last-child{ border-bottom:none; }
+  .row-menu button.del{ color:var(--red); }
+  .row-menu button:hover{ background:var(--sidebar); }
+  .empty{
+    color:var(--muted);
+    font-size:14px;
+    padding:30px;
+    text-align:center;
+    background:var(--card);
+    border:1px dashed var(--border);
+    border-radius:10px;
+  }
+  .section{ display:none; }
+  .section.active{ display:block; }
+  .helper{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .borrower-link{
+    color: var(--accent-dark);
+    cursor:pointer;
+    font-weight:700;
+    text-decoration:underline;
+  }
+  .borrower-link:hover{ color: var(--accent); }
+  .inline-form{
+    background: var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px;
+    margin:16px 0;
+  }
+  .inline-form label{ margin-top:10px; }
+  .balance-banner{
+    background: linear-gradient(135deg, rgba(107,31,42,0.10), rgba(201,162,75,0.20));
+    border:2px solid var(--gold);
+    border-radius:12px;
+    padding:16px 20px;
+    margin-top:18px;
+    text-align:center;
+  }
+  .balance-banner .label{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .balance-banner .value{ font-size:26px; font-weight:800; color: var(--accent-dark); }
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+  }
+  .modal-overlay.active{ display:flex; }
+  .modal-box{
+    background:var(--card);
+    border-radius:12px;
+    padding:28px;
+    max-width:520px;
+    width:90%;
+    max-height:85vh;
+    overflow-y:auto;
+  }
+  .modal-box h2{ margin-top:0; }
+  .modal-close{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 14px;
+    margin-top:0;
+  }
+  /* ---------- Mobile ---------- */
+  .mobile-topbar{ display:none; }
+  @media (max-width: 820px){
+    body{ flex-direction:column; padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+    .sidebar{ display:none; }
+    .mobile-topbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background: linear-gradient(150deg,#6B1F2A 0%,#471119 100%);
+      border-bottom:4px solid transparent;
+      border-image: repeating-linear-gradient(90deg,#C9A24B 0 13px, #471119 13px 21px) 4;
+      padding:10px 16px;
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+    .mobile-topbar .mt-name{ font-family:'Yatra One', serif; font-size:20px; color:var(--cream); line-height:1; }
+    .mobile-topbar .mt-sub{ font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:.1em; }
+    .main{ padding:16px 14px; max-width:100%; }
+    h2{ font-size:19px; }
+    .cards{ grid-template-columns: repeat(2, 1fr); gap:10px; }
+    .card{ padding:14px; }
+    .card .value{ font-size:19px; }
+    form{ padding:16px; max-width:100%; }
+    table{ font-size:12.5px; width:100%; table-layout:fixed; }
+    th, td{ padding:11px 8px; word-break:break-word; }
+    input, textarea, button{ font-size:16px !important; }
+    /* Loans list: Edit/Delete ko stack karo taaki cut na ho */
+    #loansTableWrap th:nth-child(2), #loansTableWrap td:nth-child(2){ width:24%; }
+    #loansTableWrap th:nth-child(3), #loansTableWrap td:nth-child(3){ width:22%; }
+    #loansTableWrap th:nth-child(4), #loansTableWrap td:nth-child(4){ width:26%; text-align:right; }
+    .row-actions{ white-space:normal !important; }
+    .row-actions button{ display:block; width:100%; margin:0 0 5px 0 !important; padding:7px 4px; font-size:13px !important; }
+    /* Detail modal tables: kaatne ke bajaye side me scroll ho */
+    .modal-box table{ display:block; overflow-x:auto; white-space:nowrap; table-layout:auto; -webkit-overflow-scrolling:touch; }
+    .modal-box th, .modal-box td{ white-space:nowrap; word-break:normal; }
+    .modal-overlay.active{ align-items:stretch; }
+    .modal-box{ width:100%; max-width:100%; max-height:100vh; height:100vh; border-radius:0; padding:16px 14px calc(20px + env(safe-area-inset-bottom,0px)); }
+    .bottom-nav{
+      display:flex !important;
+      position:fixed;
+      bottom:0; left:0; right:0;
+      background:#FDF6E7;
+      border-top:2px solid var(--gold);
+      z-index:600;
+      transform:translateY(120%);
+      opacity:0;
+      pointer-events:none;
+      transition: transform .25s ease, opacity .25s ease;
+    }
+    .bottom-nav.nav-visible{
+      transform:translateY(0);
+      opacity:1;
+      pointer-events:auto;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-shadow:0 -2px 12px rgba(0,0,0,0.06);
+    }
+    .bottom-nav .bn-item{
+      flex:1;
+      text-align:center;
+      padding:9px 1px 8px;
+      font-size:11px;
+      font-weight:600;
+      color:var(--muted);
+      cursor:pointer;
+      border:none;
+      background:none;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:3px;
+    }
+    .bottom-nav .bn-item .bn-ico{ width:23px; height:23px; }
+    .bottom-nav .bn-item.active{ color:var(--accent); }
+    .bottom-nav .bn-item.active .bn-ico{ stroke:var(--accent); }
+  }
+  .bottom-nav{ display:none; }
+  @media (min-width: 821px){ .bottom-nav, .mobile-topbar{ display:none !important; } }
+</style>
+</head>
+<body>
+
+<!-- MOBILE TOPBAR -->
+<div class="mobile-topbar">
+  <svg viewBox="0 0 100 100" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="4" width="92" height="92" rx="22" fill="#F7EDDA" stroke="#C9A24B" stroke-width="4"/>
+    <text x="46" y="64" text-anchor="middle" font-family="'Yatra One', serif" font-size="42" fill="#6B1F2A">श्री</text>
+    <text x="78" y="42" text-anchor="middle" font-family="'Yatra One', serif" font-weight="800" font-size="26" fill="#a3742f">२</text>
+  </svg>
+  <div>
+    <div class="mt-name">Shree</div>
+    <div class="mt-sub">Loan &amp; Ledger • v2</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo-block">
+    <svg width="72" height="72" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="92" height="92" rx="22" fill="#471119" stroke="#C9A24B" stroke-width="3"/>
+      <circle cx="50" cy="50" r="32" fill="#F7EDDA" stroke="#C9A24B" stroke-width="2"/>
+      <text x="46" y="64" text-anchor="middle" font-family="'Yatra One', serif" font-size="38" fill="#6B1F2A">श्री</text>
+      <text x="76" y="42" text-anchor="middle" font-family="'Yatra One', serif" font-weight="800" font-size="24" fill="#C9A24B">२</text>
+    </svg>
+    <div class="app-name">Shree</div>
+    <div class="app-tagline">Loan &amp; Ledger • v2</div>
+  </div>
+  <div class="nav-item active" data-section="dashboard">Dashboard</div>
+  <div class="nav-item" data-section="loans">Loans</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="dashboard">
+    <h2>Dashboard</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="label">Total Loans Given</div>
+        <div class="value" id="dashTotalLoans">0.000 KD</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Principal Collected</div>
+        <div class="value green" id="dashPrincipalColl">0.000 KD</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Interest Collected</div>
+        <div class="value green" id="dashInterestColl">0.000 KD</div>
+      </div>
+      <div class="card">
+        <div class="label">Outstanding (Principal)</div>
+        <div class="value red" id="dashOutstanding">0.000 KD</div>
+      </div>
+      <div class="card">
+        <div class="label">Active Borrowers</div>
+        <div class="value" id="dashActiveBorrowers">0</div>
+      </div>
+    </div>
+    <div id="dashRecent"></div>
+  </div>
+
+  <!-- LOANS -->
+  <div class="section" id="loans">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <h2 style="margin:0;">Loans</h2>
+      <button onclick="openLoanModal()" style="display:inline-flex; align-items:center; gap:6px; margin:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add Loan
+      </button>
+    </div>
+    <input type="text" id="loansSearch" placeholder="Search borrower name..." style="max-width:400px; margin:16px 0;">
+    <div id="loansTableWrap"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<div class="bottom-nav">
+  <button class="bn-item active" data-section="dashboard">
+    <svg class="bn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
+    Home
+  </button>
+  <button class="bn-item" data-section="loans">
+    <svg class="bn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+    Loans
+  </button>
+</div>
+
+<!-- ADD/EDIT LOAN MODAL -->
+<div class="modal-overlay" id="loanModal">
+  <div class="modal-box">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <h2 id="loanHeading" style="margin:0;">Add Loan</h2>
+      <button class="modal-close" onclick="closeLoanModal()">Close</button>
+    </div>
+    <form id="loanForm">
+      <label>Borrower Name</label>
+      <input type="text" id="borrowerName" required placeholder="e.g. Ramesh Kumar">
+
+      <label>Phone (optional)</label>
+      <input type="text" id="borrowerPhone" placeholder="e.g. 5xxxxxxx">
+
+      <label>Loan Amount (KD)</label>
+      <input type="number" id="loanAmount" step="0.001" required placeholder="e.g. 500">
+
+      <label>Date Given</label>
+      <input type="date" id="loanDate" required>
+
+      <label>Notes (optional)</label>
+      <textarea id="loanNotes" placeholder="e.g. 5% interest per month"></textarea>
+
+      <button type="submit" id="loanSubmitBtn">Save Loan</button>
+      <button type="button" class="secondary" id="loanCancelBtn" style="display:none;" onclick="cancelEditLoan()">Cancel Edit</button>
+    </form>
+  </div>
+</div>
+
+<!-- BORROWER DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box" style="max-width:760px;">
+    <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-bottom:8px;">
+      <button class="secondary" onclick="exportDetail('png')">📷 Picture</button>
+      <button class="secondary" onclick="exportDetail('pdf')">📄 PDF</button>
+      <button class="modal-close" onclick="closeLoanDetail()">Close</button>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ADD COLLECTION PAGE (modal) -->
+<div class="modal-overlay" id="collectionModal">
+  <div class="modal-box">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <h2 id="collectionHeading" style="margin:0;">Add Collection</h2>
+      <button class="modal-close" onclick="closeCollectionPage()">Close</button>
+    </div>
+    <form id="collectionForm">
+      <div class="helper" id="collectionBorrowerNote" style="margin-bottom:6px;"></div>
+      <label>Principal (KD) — loan wapsi</label>
+      <input type="number" id="detPrincipal" step="0.001" placeholder="e.g. 100">
+
+      <label>Interest (KD)</label>
+      <input type="number" id="detInterest" step="0.001" placeholder="e.g. 25">
+      <div class="helper">Principal ya Interest — kam se kam ek zaroor bharo.</div>
+
+      <label>Date</label>
+      <input type="date" id="detDate" required>
+
+      <label>Note (optional)</label>
+      <input type="text" id="detNote" placeholder="e.g. June installment">
+
+      <button type="submit">Save Collection</button>
+      <button type="button" class="secondary" onclick="closeCollectionPage()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- ROW ACTION DROPDOWN (Edit/Delete) -->
+<div id="rowMenu" class="row-menu" onclick="event.stopPropagation()">
+  <button onclick="rowMenuEdit()">✏ Edit</button>
+  <button class="del" onclick="rowMenuDelete()">🗑 Delete</button>
+</div>
+
+<script>
+// ===================== STORAGE =====================
+const LOANS_KEY = 'ledger_loans';
+const COLLECTIONS_KEY = 'ledger_collections';
+function loadLoans(){ return JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); }
+function saveLoans(data){ localStorage.setItem(LOANS_KEY, JSON.stringify(data)); }
+function loadCollections(){ return JSON.parse(localStorage.getItem(COLLECTIONS_KEY) || '[]'); }
+function saveCollections(data){ localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(data)); }
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ return Number(n || 0).toFixed(3); }
+function fmtDate(d){
+  if(!d) return '-';
+  const p = String(d).slice(0,10).split('-');
+  if(p.length !== 3) return d;
+  return p[2] + '-' + p[1] + '-' + p[0]; // dd-mm-yyyy
+}
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : str;
+  return div.innerHTML;
+}
+
+// ===================== NAVIGATION =====================
+function switchSection(sectionId){
+  document.querySelectorAll('.nav-item, .bn-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('[data-section="'+sectionId+'"]').forEach(el=>el.classList.add('active'));
+  const sec = document.getElementById(sectionId);
+  if(sec) sec.classList.add('active');
+  window.scrollTo(0,0);
+  if(sectionId === 'dashboard') renderDashboard();
+  if(sectionId === 'loans') renderLoansTable();
+}
+document.querySelectorAll('.nav-item, .bn-item').forEach(item=>{
+  item.addEventListener('click', ()=> switchSection(item.dataset.section));
+});
+
+// Auto-hide bottom nav (mobile): sirf touch/scroll pe dikhe, warna gayab
+(function(){
+  const nav = document.querySelector('.bottom-nav');
+  if(!nav) return;
+  let hideTimer = null;
+  function showNav(){
+    nav.classList.add('nav-visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(()=> nav.classList.remove('nav-visible'), 2500);
+  }
+  ['touchstart','touchmove','pointerdown','scroll','click','keydown'].forEach(ev=>{
+    window.addEventListener(ev, showNav, { passive:true });
+  });
+})();
+
+// ===================== LOAN FORM =====================
+let editingLoanId = null;
+
+function openLoanModal(){
+  cancelEditLoan();
+  document.getElementById('loanDate').valueAsDate = new Date();
+  document.getElementById('loanModal').classList.add('active');
+}
+function closeLoanModal(){
+  document.getElementById('loanModal').classList.remove('active');
+  cancelEditLoan();
+}
+
+document.getElementById('loanForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const borrowerName = document.getElementById('borrowerName').value.trim();
+  const borrowerPhone = document.getElementById('borrowerPhone').value.trim();
+  const loanAmount = parseFloat(document.getElementById('loanAmount').value) || 0;
+  const dateGiven = document.getElementById('loanDate').value;
+  const notes = document.getElementById('loanNotes').value.trim();
+
+  let loans = loadLoans();
+  if(editingLoanId){
+    loans = loans.map(l => l.id === editingLoanId ? { ...l, borrowerName, borrowerPhone, loanAmount, dateGiven, notes } : l);
+  } else {
+    loans.push({ id: uid(), borrowerName, borrowerPhone, loanAmount, dateGiven, notes, createdAt: new Date().toISOString() });
+  }
+  saveLoans(loans);
+  closeLoanModal();
+  renderLoansTable(document.getElementById('loansSearch').value);
+  renderDashboard();
+});
+
+function editLoan(id){
+  const loan = loadLoans().find(l=>l.id === id);
+  if(!loan) return;
+  editingLoanId = id;
+  document.getElementById('borrowerName').value = loan.borrowerName || '';
+  document.getElementById('borrowerPhone').value = loan.borrowerPhone || '';
+  document.getElementById('loanAmount').value = loan.loanAmount || '';
+  document.getElementById('loanDate').value = loan.dateGiven || '';
+  document.getElementById('loanNotes').value = loan.notes || '';
+  document.getElementById('loanHeading').textContent = 'Edit Loan';
+  document.getElementById('loanSubmitBtn').textContent = 'Update Loan';
+  document.getElementById('loanCancelBtn').style.display = 'inline-block';
+  document.getElementById('loanModal').classList.add('active');
+}
+
+function cancelEditLoan(){
+  editingLoanId = null;
+  document.getElementById('loanForm').reset();
+  document.getElementById('loanDate').valueAsDate = new Date();
+  document.getElementById('loanHeading').textContent = 'Add Loan';
+  document.getElementById('loanSubmitBtn').textContent = 'Save Loan';
+  document.getElementById('loanCancelBtn').style.display = 'none';
+}
+
+function deleteLoan(id){
+  if(!confirm('Ye loan aur iski saari collections delete karni hain?')) return;
+  saveLoans(loadLoans().filter(l=>l.id !== id));
+  saveCollections(loadCollections().filter(c=>c.loanId !== id));
+  renderLoansTable(document.getElementById('loansSearch').value);
+  renderDashboard();
+}
+
+// ===================== COLLECTION HELPERS =====================
+function collectionsForLoan(id){ return loadCollections().filter(c=>c.loanId === id); }
+function principalCollected(id){ return collectionsForLoan(id).reduce((s,c)=>s+parseFloat(c.principal||0),0); }
+function interestCollected(id){ return collectionsForLoan(id).reduce((s,c)=>s+parseFloat(c.interest||0),0); }
+function monthKey(d){ return d ? String(d).slice(0,7) : 'unknown'; }
+function monthLabel(key){
+  if(key === 'unknown') return 'No Date';
+  const [y,m] = key.split('-');
+  return new Date(parseInt(y), parseInt(m)-1, 1).toLocaleString('en-US', { month:'long', year:'numeric' });
+}
+
+// ===================== LOANS TABLE =====================
+function renderLoansTable(filterText){
+  filterText = (filterText || '').toLowerCase();
+  let loans = loadLoans();
+  if(filterText){
+    loans = loans.filter(l => (l.borrowerName||'').toLowerCase().includes(filterText));
+  }
+  const wrap = document.getElementById('loansTableWrap');
+  if(loans.length === 0){
+    wrap.innerHTML = '<div class="empty">' + (filterText ? 'Is naam se koi loan nahi mila.' : 'Koi loan abhi add nahi hua. Upar "+ Add Loan" se add karo.') + '</div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>Borrower</th><th>Amount</th><th>Date</th><th style="text-align:right;">Action</th></tr></thead><tbody>';
+  loans.slice().reverse().forEach(loan=>{
+    html += '<tr>' +
+      '<td><span class="borrower-link" onclick="showLoanDetail(\'' + loan.id + '\')">' + escapeHtml(loan.borrowerName) + '</span></td>' +
+      '<td>' + fmt(loan.loanAmount) + ' KD</td>' +
+      '<td>' + fmtDate(loan.dateGiven) + '</td>' +
+      '<td class="row-actions" style="text-align:right; white-space:nowrap;">' +
+        '<button class="secondary" onclick="editLoan(\'' + loan.id + '\')">Edit</button>' +
+        '<button class="danger" onclick="deleteLoan(\'' + loan.id + '\')">Delete</button>' +
+      '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+document.getElementById('loansSearch').addEventListener('input', function(){
+  renderLoansTable(this.value);
+});
+
+// ===================== DASHBOARD =====================
+function isLoanCompleted(loan){
+  const amt = parseFloat(loan.loanAmount||0);
+  if(amt <= 0) return false;
+  return principalCollected(loan.id) >= amt - 0.0005;
+}
+
+function renderDashboard(){
+  const loans = loadLoans();
+  const cols = loadCollections();
+  const totalLoans = loans.reduce((s,l)=>s+parseFloat(l.loanAmount||0),0);
+  const totalPrincipalColl = cols.reduce((s,c)=>s+parseFloat(c.principal||0),0);
+  const totalInterestColl = cols.reduce((s,c)=>s+parseFloat(c.interest||0),0);
+  const activeBorrowers = new Set(loans.filter(l=>!isLoanCompleted(l)).map(l=>l.borrowerName)).size;
+
+  document.getElementById('dashTotalLoans').textContent = fmt(totalLoans) + ' KD';
+  document.getElementById('dashPrincipalColl').textContent = fmt(totalPrincipalColl) + ' KD';
+  document.getElementById('dashInterestColl').textContent = fmt(totalInterestColl) + ' KD';
+  document.getElementById('dashOutstanding').textContent = fmt(totalLoans - totalPrincipalColl) + ' KD';
+  document.getElementById('dashActiveBorrowers').textContent = activeBorrowers;
+
+  const recentWrap = document.getElementById('dashRecent');
+  if(loans.length === 0){
+    recentWrap.innerHTML = '<div class="empty">Abhi koi loan nahi hai. Loans tab me "+ Add Loan" se shuru karo.</div>';
+    return;
+  }
+  let html = '<h2 style="font-size:16px;margin-top:10px;">Recent Loans</h2><table><thead><tr><th>Borrower</th><th>Amount</th><th>Date</th><th>Notes</th></tr></thead><tbody>';
+  loans.slice(-5).reverse().forEach(loan=>{
+    html += '<tr><td>' + escapeHtml(loan.borrowerName) + '</td><td>' + fmt(loan.loanAmount) + ' KD</td><td>' + fmtDate(loan.dateGiven) + '</td><td>' + escapeHtml(loan.notes || '-') + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  recentWrap.innerHTML = html;
+}
+
+// ===================== BORROWER DETAIL =====================
+let currentDetailLoanId = null;
+let currentExportName = 'Shree-Borrower';
+
+function showLoanDetail(loanId){
+  const loan = loadLoans().find(l=>l.id === loanId);
+  if(!loan) return;
+  currentDetailLoanId = loanId;
+  currentExportName = 'Shree-' + (loan.borrowerName||'Borrower').replace(/[^a-zA-Z0-9]/g,'_');
+  renderDetail();
+  document.getElementById('detailModal').classList.add('active');
+}
+function closeLoanDetail(){
+  currentDetailLoanId = null;
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+function renderDetail(){
+  const loan = loadLoans().find(l=>l.id === currentDetailLoanId);
+  if(!loan) return;
+  const entries = collectionsForLoan(loan.id).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const pColl = principalCollected(loan.id);
+  const iColl = interestCollected(loan.id);
+  const outstanding = parseFloat(loan.loanAmount||0) - pColl;
+
+  let html = '<h2 style="margin:0 0 4px 0;">' + escapeHtml(loan.borrowerName) + '</h2>';
+  html += '<p class="helper" style="margin:0 0 12px 0;">Date Given: ' + fmtDate(loan.dateGiven) +
+    (loan.borrowerPhone ? ' &nbsp;|&nbsp; Phone: ' + escapeHtml(loan.borrowerPhone) : '') +
+    (loan.notes ? '<br>Notes: ' + escapeHtml(loan.notes) : '') + '</p>';
+
+  // Summary cards
+  html += '<div class="cards">' +
+    '<div class="card"><div class="label">Loan Diya (Given)</div><div class="value">' + fmt(loan.loanAmount) + ' KD</div></div>' +
+    '<div class="card"><div class="label">Principal Collect</div><div class="value green">' + fmt(pColl) + ' KD</div></div>' +
+    '<div class="card"><div class="label">Interest Collect</div><div class="value green">' + fmt(iColl) + ' KD</div></div>' +
+    '<div class="card"><div class="label">Baaki (Outstanding)</div><div class="value red">' + fmt(outstanding) + ' KD</div></div>' +
+  '</div>';
+
+  // Single + button to open the separate Collection page
+  html += '<div class="no-export" style="margin:4px 0 8px 0;">' +
+    '<button onclick="openCollectionPage()" style="display:inline-flex; align-items:center; gap:6px; margin:0;">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
+      'Add Collection' +
+    '</button>' +
+  '</div>';
+
+  // Full payment history (date-wise)
+  html += '<h2 style="font-size:15px; margin-top:20px;">Payment History (Date-wise)</h2>';
+  if(entries.length === 0){
+    html += '<div class="empty">Abhi tak koi collection add nahi hui.</div>';
+  } else {
+    html += '<table><thead><tr><th>Date</th><th>Principal</th><th>Interest</th><th>Note</th><th class="no-export" style="text-align:right;">Action</th></tr></thead><tbody>';
+    entries.slice().reverse().forEach(c=>{
+      html += '<tr>' +
+        '<td>' + fmtDate(c.date) + '</td>' +
+        '<td>' + fmt(c.principal||0) + ' KD</td>' +
+        '<td style="color:var(--green);">' + fmt(c.interest||0) + ' KD</td>' +
+        '<td>' + escapeHtml(c.note || '-') + '</td>' +
+        '<td class="no-export" style="text-align:right; white-space:nowrap;">' +
+          '<button class="menu-btn" onclick="toggleRowMenu(event,\'' + c.id + '\')">&#8942;</button>' +
+        '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  html += '<div class="balance-banner"><div class="label">Total Interest (Profit)</div><div class="value">' + fmt(iColl) + ' KD</div></div>';
+
+  document.getElementById('detailContent').innerHTML = html;
+}
+
+// --- Separate Add/Edit Collection page ---
+let editingCollectionId = null;
+
+function openCollectionPage(){
+  const loan = loadLoans().find(l=>l.id === currentDetailLoanId);
+  if(!loan) return;
+  editingCollectionId = null;
+  document.getElementById('collectionForm').reset();
+  document.getElementById('collectionHeading').textContent = 'Add Collection';
+  document.getElementById('collectionBorrowerNote').textContent = 'Borrower: ' + loan.borrowerName;
+  document.getElementById('detDate').valueAsDate = new Date();
+  document.getElementById('collectionModal').classList.add('active');
+}
+
+function editCollection(id){
+  const c = loadCollections().find(x=>x.id === id);
+  if(!c) return;
+  const loan = loadLoans().find(l=>l.id === c.loanId);
+  editingCollectionId = id;
+  document.getElementById('collectionHeading').textContent = 'Edit Collection';
+  document.getElementById('collectionBorrowerNote').textContent = 'Borrower: ' + (loan ? loan.borrowerName : '-');
+  document.getElementById('detPrincipal').value = c.principal || '';
+  document.getElementById('detInterest').value = c.interest || '';
+  document.getElementById('detDate').value = c.date || '';
+  document.getElementById('detNote').value = c.note || '';
+  document.getElementById('collectionModal').classList.add('active');
+}
+
+function closeCollectionPage(){
+  editingCollectionId = null;
+  document.getElementById('collectionModal').classList.remove('active');
+}
+
+document.getElementById('collectionForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const principal = parseFloat(document.getElementById('detPrincipal').value) || 0;
+  const interest = parseFloat(document.getElementById('detInterest').value) || 0;
+  const date = document.getElementById('detDate').value;
+  const note = document.getElementById('detNote').value.trim();
+  if(principal <= 0 && interest <= 0){ alert('Principal ya Interest, kam se kam ek amount daalo.'); return; }
+  let cols = loadCollections();
+  if(editingCollectionId){
+    cols = cols.map(c => c.id === editingCollectionId ? { ...c, principal, interest, date, note } : c);
+  } else {
+    cols.push({ id: uid(), loanId: currentDetailLoanId, principal, interest, date, note, createdAt: new Date().toISOString() });
+  }
+  saveCollections(cols);
+  closeCollectionPage();
+  renderDetail();
+  renderDashboard();
+});
+
+function deleteCollection(id){
+  if(!confirm('Ye collection entry delete karni hai?')) return;
+  saveCollections(loadCollections().filter(c=>c.id !== id));
+  renderDetail();
+  renderDashboard();
+}
+
+// --- Row action dropdown (Edit/Delete) ---
+let rowMenuId = null;
+function toggleRowMenu(e, id){
+  e.stopPropagation();
+  const menu = document.getElementById('rowMenu');
+  if(rowMenuId === id && menu.style.display === 'block'){ closeRowMenu(); return; }
+  rowMenuId = id;
+  const r = e.currentTarget.getBoundingClientRect();
+  const mw = 140;
+  let left = r.right - mw;
+  if(left < 8) left = 8;
+  let top = r.bottom + 4;
+  if(top + 100 > window.innerHeight){ top = r.top - 100; } // niche jagah na ho to upar dikhao
+  menu.style.left = left + 'px';
+  menu.style.top = Math.max(8, top) + 'px';
+  menu.style.display = 'block';
+}
+function closeRowMenu(){
+  const m = document.getElementById('rowMenu');
+  if(m) m.style.display = 'none';
+  rowMenuId = null;
+}
+function rowMenuEdit(){ const id = rowMenuId; closeRowMenu(); if(id) editCollection(id); }
+function rowMenuDelete(){ const id = rowMenuId; closeRowMenu(); if(id) deleteCollection(id); }
+document.addEventListener('click', closeRowMenu);
+window.addEventListener('scroll', closeRowMenu, true);
+
+// ===================== EXPORT (Picture / PDF) =====================
+async function exportDetail(type){
+  const src = document.getElementById('detailContent');
+  if(!src) return;
+  if(typeof html2canvas === 'undefined'){ alert('Export library load nahi hui. Internet check karke dubara try karo.'); return; }
+
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed; left:-10000px; top:0; width:760px; background:#fff; padding:28px; font-family:\'Plus Jakarta Sans\',sans-serif; color:#111; box-sizing:border-box;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex; align-items:center; gap:10px; border-bottom:2px solid #C9A24B; padding-bottom:12px; margin-bottom:18px;';
+  header.innerHTML = '<div style="font-family:\'Yatra One\',serif; font-size:24px; color:#6B1F2A;">श्री Shree <span style="font-size:13px; color:#a3742f;">v2</span></div><div style="font-size:12px; color:#8a8579; margin-left:auto;">' + fmtDate(new Date().toISOString()) + '</div>';
+  holder.appendChild(header);
+
+  const clone = src.cloneNode(true);
+  clone.querySelectorAll('.no-export').forEach(el=>el.remove());
+  clone.querySelectorAll('table').forEach(t=>{ t.style.width='100%'; t.style.tableLayout='auto'; t.style.borderColor='#c9a24b'; });
+  // High-contrast, bold text so chhota text bhi easily padha ja sake
+  clone.querySelectorAll('td').forEach(c=>{ c.style.fontSize='15.5px'; c.style.fontWeight='800'; c.style.color='#111'; c.style.borderColor='#d8c48c'; });
+  clone.querySelectorAll('th').forEach(c=>{ c.style.fontSize='13px'; c.style.fontWeight='800'; c.style.color='#3a1a10'; });
+  clone.querySelectorAll('h2').forEach(c=>{ c.style.color='#471119'; c.style.fontWeight='800'; });
+  clone.querySelectorAll('.card .label, .balance-banner .label').forEach(c=>{ c.style.color='#5a4426'; c.style.fontWeight='700'; });
+  clone.querySelectorAll('.card .value, .balance-banner .value').forEach(c=>{ c.style.fontWeight='800'; c.style.color='#3a1008'; });
+  clone.querySelectorAll('.helper, p').forEach(c=>{ c.style.color='#333'; c.style.fontWeight='600'; });
+  // Green/red ko thoda gehra karke print pe clear rakho
+  clone.querySelectorAll('.value.green').forEach(c=> c.style.color='#1c6b3f');
+  clone.querySelectorAll('.value.red').forEach(c=> c.style.color='#a52a1e');
+  clone.querySelectorAll('td[style*="var(--green)"], td[style*="green"]').forEach(c=> c.style.color='#1c6b3f');
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+
+  try{
+    const canvas = await html2canvas(holder, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+    if(type === 'png'){
+      const link = document.createElement('a');
+      link.download = currentExportName + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } else {
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p','mm','a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const imgW = pageW - margin*2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let heightLeft = imgH;
+      let position = margin;
+      pdf.addImage(imgData,'PNG',margin,position,imgW,imgH);
+      heightLeft -= (pageH - margin*2);
+      while(heightLeft > 0){
+        position = margin - (imgH - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData,'PNG',margin,position,imgW,imgH);
+        heightLeft -= (pageH - margin*2);
+      }
+      pdf.save(currentExportName + '.pdf');
+    }
+  }catch(e){
+    console.error('Export error:', e);
+    alert('Export fail hua. Dubara try karo.');
+  }finally{
+    document.body.removeChild(holder);
+  }
+}
+
+// ===================== STARTUP =====================
+document.getElementById('loanDate').valueAsDate = new Date();
+renderDashboard();
+</script>
+
+</body>
+</html>
