@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -505,7 +506,7 @@
   </div>
 </div>
 
-<!-- ADD COLLECTION PAGE (modal) -->
+<!-- ADD/EDIT COLLECTION PAGE (modal) -->
 <div class="modal-overlay" id="collectionModal">
   <div class="modal-box">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
@@ -539,15 +540,91 @@
   <button class="del" onclick="rowMenuDelete()">🗑 Delete</button>
 </div>
 
+<!-- SYNC TOAST -->
+<div id="syncToast" style="display:none; position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; padding:9px 18px; border-radius:20px; font-size:12px; z-index:900; box-shadow:0 4px 14px rgba(0,0,0,0.2);"></div>
+
 <script>
-// ===================== STORAGE =====================
-const LOANS_KEY = 'ledger_loans';
-const COLLECTIONS_KEY = 'ledger_collections';
+// ===================== STORAGE (local cache) =====================
+const LOANS_KEY = 'shree2_loans';
+const COLLECTIONS_KEY = 'shree2_collections';
 function loadLoans(){ return JSON.parse(localStorage.getItem(LOANS_KEY) || '[]'); }
 function saveLoans(data){ localStorage.setItem(LOANS_KEY, JSON.stringify(data)); }
 function loadCollections(){ return JSON.parse(localStorage.getItem(COLLECTIONS_KEY) || '[]'); }
 function saveCollections(data){ localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(data)); }
 
+// ===================== SUPABASE LIVE SYNC =====================
+const SUPABASE_URL = 'https://ayqzhsprtocwfbdurqaw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5cXpoc3BydG9jd2ZiZHVycWF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3Mzg3MTksImV4cCI6MjEwMDMxNDcxOX0.9O-zhMWBAQda-L940WralqZjp5gU3jw0t92nmcsu_Z8';
+const T_LOANS = 'shree_loans';
+const T_COLLECTIONS = 'shree_collections';
+const sb = (window.supabase && SUPABASE_URL) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+function loanToRow(l){ return { id:l.id, borrower_name:l.borrowerName||null, borrower_phone:l.borrowerPhone||null, loan_amount:parseFloat(l.loanAmount)||0, date_given:l.dateGiven||null, notes:l.notes||null }; }
+function loanFromRow(r){ return { id:r.id, borrowerName:r.borrower_name||'', borrowerPhone:r.borrower_phone||'', loanAmount:Number(r.loan_amount)||0, dateGiven:r.date_given||'', notes:r.notes||'', createdAt:r.created_at }; }
+function colToRow(c){ return { id:c.id, loan_id:c.loanId||null, principal:parseFloat(c.principal)||0, interest:parseFloat(c.interest)||0, date:c.date||null, note:c.note||null }; }
+function colFromRow(r){ return { id:r.id, loanId:r.loan_id||'', principal:Number(r.principal)||0, interest:Number(r.interest)||0, date:r.date||'', note:r.note||'', createdAt:r.created_at }; }
+
+function showToast(msg){
+  const t = document.getElementById('syncToast');
+  if(!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.display = 'none'; }, 2000);
+}
+
+async function cloudUpsertLoan(l){
+  if(!sb) return;
+  try{ const { error } = await sb.from(T_LOANS).upsert(loanToRow(l), { onConflict:'id' }); if(error) throw error; showToast('☁️ Synced'); }
+  catch(e){ console.error('loan upsert', e); showToast('⚠️ Sync failed'); }
+}
+async function cloudDeleteLoan(id){
+  if(!sb) return;
+  try{
+    await sb.from(T_COLLECTIONS).delete().eq('loan_id', id);
+    const { error } = await sb.from(T_LOANS).delete().eq('id', id);
+    if(error) throw error; showToast('☁️ Synced');
+  }catch(e){ console.error('loan delete', e); showToast('⚠️ Sync failed'); }
+}
+async function cloudUpsertCollection(c){
+  if(!sb) return;
+  try{ const { error } = await sb.from(T_COLLECTIONS).upsert(colToRow(c), { onConflict:'id' }); if(error) throw error; showToast('☁️ Synced'); }
+  catch(e){ console.error('col upsert', e); showToast('⚠️ Sync failed'); }
+}
+async function cloudDeleteCollection(id){
+  if(!sb) return;
+  try{ const { error } = await sb.from(T_COLLECTIONS).delete().eq('id', id); if(error) throw error; showToast('☁️ Synced'); }
+  catch(e){ console.error('col delete', e); showToast('⚠️ Sync failed'); }
+}
+
+async function pullFromCloud(){
+  if(!sb) return false;
+  const [lRes, cRes] = await Promise.all([
+    sb.from(T_LOANS).select('*'),
+    sb.from(T_COLLECTIONS).select('*')
+  ]);
+  if(lRes.error) throw lRes.error;
+  if(cRes.error) throw cRes.error;
+  localStorage.setItem(LOANS_KEY, JSON.stringify((lRes.data||[]).map(loanFromRow)));
+  localStorage.setItem(COLLECTIONS_KEY, JSON.stringify((cRes.data||[]).map(colFromRow)));
+  return true;
+}
+
+async function startCloudSync(){
+  if(!sb){ showToast('⚠️ Cloud config missing'); return; }
+  showToast('☁️ Syncing...');
+  try{
+    await pullFromCloud();
+    renderDashboard();
+    renderLoansTable(document.getElementById('loansSearch').value);
+    showToast('☁️ Cloud connected');
+  }catch(e){
+    console.error('pull error', e);
+    showToast('⚠️ Cloud offline — local data');
+  }
+}
+
+// ===================== UTILS =====================
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function fmt(n){ return Number(n || 0).toFixed(3); }
 function fmtDate(d){
@@ -614,12 +691,18 @@ document.getElementById('loanForm').addEventListener('submit', function(e){
   const notes = document.getElementById('loanNotes').value.trim();
 
   let loans = loadLoans();
+  let saved = null;
   if(editingLoanId){
-    loans = loans.map(l => l.id === editingLoanId ? { ...l, borrowerName, borrowerPhone, loanAmount, dateGiven, notes } : l);
+    loans = loans.map(l=>{
+      if(l.id === editingLoanId){ saved = { ...l, borrowerName, borrowerPhone, loanAmount, dateGiven, notes }; return saved; }
+      return l;
+    });
   } else {
-    loans.push({ id: uid(), borrowerName, borrowerPhone, loanAmount, dateGiven, notes, createdAt: new Date().toISOString() });
+    saved = { id: uid(), borrowerName, borrowerPhone, loanAmount, dateGiven, notes, createdAt: new Date().toISOString() };
+    loans.push(saved);
   }
   saveLoans(loans);
+  if(saved) cloudUpsertLoan(saved);
   closeLoanModal();
   renderLoansTable(document.getElementById('loansSearch').value);
   renderDashboard();
@@ -653,19 +736,9 @@ function deleteLoan(id){
   if(!confirm('Ye loan aur iski saari collections delete karni hain?')) return;
   saveLoans(loadLoans().filter(l=>l.id !== id));
   saveCollections(loadCollections().filter(c=>c.loanId !== id));
+  cloudDeleteLoan(id);
   renderLoansTable(document.getElementById('loansSearch').value);
   renderDashboard();
-}
-
-// ===================== COLLECTION HELPERS =====================
-function collectionsForLoan(id){ return loadCollections().filter(c=>c.loanId === id); }
-function principalCollected(id){ return collectionsForLoan(id).reduce((s,c)=>s+parseFloat(c.principal||0),0); }
-function interestCollected(id){ return collectionsForLoan(id).reduce((s,c)=>s+parseFloat(c.interest||0),0); }
-function monthKey(d){ return d ? String(d).slice(0,7) : 'unknown'; }
-function monthLabel(key){
-  if(key === 'unknown') return 'No Date';
-  const [y,m] = key.split('-');
-  return new Date(parseInt(y), parseInt(m)-1, 1).toLocaleString('en-US', { month:'long', year:'numeric' });
 }
 
 // ===================== LOANS TABLE =====================
@@ -699,13 +772,17 @@ document.getElementById('loansSearch').addEventListener('input', function(){
   renderLoansTable(this.value);
 });
 
-// ===================== DASHBOARD =====================
+// ===================== COLLECTION HELPERS =====================
+function collectionsForLoan(id){ return loadCollections().filter(c=>c.loanId === id); }
+function principalCollected(id){ return collectionsForLoan(id).reduce((s,c)=>s+parseFloat(c.principal||0),0); }
+function interestCollected(id){ return collectionsForLoan(id).reduce((s,c)=>s+parseFloat(c.interest||0),0); }
 function isLoanCompleted(loan){
   const amt = parseFloat(loan.loanAmount||0);
   if(amt <= 0) return false;
   return principalCollected(loan.id) >= amt - 0.0005;
 }
 
+// ===================== DASHBOARD =====================
 function renderDashboard(){
   const loans = loadLoans();
   const cols = loadCollections();
@@ -763,7 +840,6 @@ function renderDetail(){
     (loan.borrowerPhone ? ' &nbsp;|&nbsp; Phone: ' + escapeHtml(loan.borrowerPhone) : '') +
     (loan.notes ? '<br>Notes: ' + escapeHtml(loan.notes) : '') + '</p>';
 
-  // Summary cards
   html += '<div class="cards">' +
     '<div class="card"><div class="label">Loan Diya (Given)</div><div class="value">' + fmt(loan.loanAmount) + ' KD</div></div>' +
     '<div class="card"><div class="label">Principal Collect</div><div class="value green">' + fmt(pColl) + ' KD</div></div>' +
@@ -771,7 +847,6 @@ function renderDetail(){
     '<div class="card"><div class="label">Baaki (Outstanding)</div><div class="value red">' + fmt(outstanding) + ' KD</div></div>' +
   '</div>';
 
-  // Single + button to open the separate Collection page
   html += '<div class="no-export" style="margin:4px 0 8px 0;">' +
     '<button onclick="openCollectionPage()" style="display:inline-flex; align-items:center; gap:6px; margin:0;">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
@@ -779,7 +854,6 @@ function renderDetail(){
     '</button>' +
   '</div>';
 
-  // Full payment history (date-wise)
   html += '<h2 style="font-size:15px; margin-top:20px;">Payment History (Date-wise)</h2>';
   if(entries.length === 0){
     html += '<div class="empty">Abhi tak koi collection add nahi hui.</div>';
@@ -845,12 +919,18 @@ document.getElementById('collectionForm').addEventListener('submit', function(e)
   const note = document.getElementById('detNote').value.trim();
   if(principal <= 0 && interest <= 0){ alert('Principal ya Interest, kam se kam ek amount daalo.'); return; }
   let cols = loadCollections();
+  let saved = null;
   if(editingCollectionId){
-    cols = cols.map(c => c.id === editingCollectionId ? { ...c, principal, interest, date, note } : c);
+    cols = cols.map(c=>{
+      if(c.id === editingCollectionId){ saved = { ...c, principal, interest, date, note }; return saved; }
+      return c;
+    });
   } else {
-    cols.push({ id: uid(), loanId: currentDetailLoanId, principal, interest, date, note, createdAt: new Date().toISOString() });
+    saved = { id: uid(), loanId: currentDetailLoanId, principal, interest, date, note, createdAt: new Date().toISOString() };
+    cols.push(saved);
   }
   saveCollections(cols);
+  if(saved) cloudUpsertCollection(saved);
   closeCollectionPage();
   renderDetail();
   renderDashboard();
@@ -859,6 +939,7 @@ document.getElementById('collectionForm').addEventListener('submit', function(e)
 function deleteCollection(id){
   if(!confirm('Ye collection entry delete karni hai?')) return;
   saveCollections(loadCollections().filter(c=>c.id !== id));
+  cloudDeleteCollection(id);
   renderDetail();
   renderDashboard();
 }
@@ -875,7 +956,7 @@ function toggleRowMenu(e, id){
   let left = r.right - mw;
   if(left < 8) left = 8;
   let top = r.bottom + 4;
-  if(top + 100 > window.innerHeight){ top = r.top - 100; } // niche jagah na ho to upar dikhao
+  if(top + 100 > window.innerHeight){ top = r.top - 100; }
   menu.style.left = left + 'px';
   menu.style.top = Math.max(8, top) + 'px';
   menu.style.display = 'block';
@@ -907,17 +988,15 @@ async function exportDetail(type){
   const clone = src.cloneNode(true);
   clone.querySelectorAll('.no-export').forEach(el=>el.remove());
   clone.querySelectorAll('table').forEach(t=>{ t.style.width='100%'; t.style.tableLayout='auto'; t.style.borderColor='#c9a24b'; });
-  // High-contrast, bold text so chhota text bhi easily padha ja sake
   clone.querySelectorAll('td').forEach(c=>{ c.style.fontSize='15.5px'; c.style.fontWeight='800'; c.style.color='#111'; c.style.borderColor='#d8c48c'; });
   clone.querySelectorAll('th').forEach(c=>{ c.style.fontSize='13px'; c.style.fontWeight='800'; c.style.color='#3a1a10'; });
   clone.querySelectorAll('h2').forEach(c=>{ c.style.color='#471119'; c.style.fontWeight='800'; });
   clone.querySelectorAll('.card .label, .balance-banner .label').forEach(c=>{ c.style.color='#5a4426'; c.style.fontWeight='700'; });
   clone.querySelectorAll('.card .value, .balance-banner .value').forEach(c=>{ c.style.fontWeight='800'; c.style.color='#3a1008'; });
   clone.querySelectorAll('.helper, p').forEach(c=>{ c.style.color='#333'; c.style.fontWeight='600'; });
-  // Green/red ko thoda gehra karke print pe clear rakho
   clone.querySelectorAll('.value.green').forEach(c=> c.style.color='#1c6b3f');
   clone.querySelectorAll('.value.red').forEach(c=> c.style.color='#a52a1e');
-  clone.querySelectorAll('td[style*="var(--green)"], td[style*="green"]').forEach(c=> c.style.color='#1c6b3f');
+  clone.querySelectorAll('td[style*="green"]').forEach(c=> c.style.color='#1c6b3f');
   holder.appendChild(clone);
   document.body.appendChild(holder);
 
@@ -960,6 +1039,8 @@ async function exportDetail(type){
 // ===================== STARTUP =====================
 document.getElementById('loanDate').valueAsDate = new Date();
 renderDashboard();
+renderLoansTable();
+startCloudSync();
 </script>
 
 </body>
