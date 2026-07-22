@@ -395,6 +395,7 @@
   </div>
   <div class="nav-item active" data-section="dashboard">Dashboard</div>
   <div class="nav-item" data-section="loans">Loans</div>
+  <div class="nav-item" data-section="profit">Profit</div>
 </div>
 
 <!-- MAIN -->
@@ -441,6 +442,13 @@
     <div id="loansTableWrap"></div>
   </div>
 
+  <!-- PROFIT -->
+  <div class="section" id="profit">
+    <h2>Profit</h2>
+    <div class="helper" style="margin-bottom:14px;">Sirf interest hi profit me count hota hai. Kisi month pe tap karo to us mahine kis-kis se kitna interest aaya wo dikh jaayega.</div>
+    <div id="profitTableWrap"></div>
+  </div>
+
 </div>
 
 <!-- BOTTOM NAV (mobile) -->
@@ -452,6 +460,10 @@
   <button class="bn-item" data-section="loans">
     <svg class="bn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
     Loans
+  </button>
+  <button class="bn-item" data-section="profit">
+    <svg class="bn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></svg>
+    Profit
   </button>
 </div>
 
@@ -633,6 +645,7 @@ async function startCloudSync(){
     await pullFromCloud();
     renderDashboard();
     renderLoansTable(document.getElementById('loansSearch').value);
+    renderProfitTable();
     showToast('☁️ Cloud connected');
   }catch(e){
     console.error('pull error', e);
@@ -654,6 +667,12 @@ function escapeHtml(str){
   div.textContent = str == null ? '' : str;
   return div.innerHTML;
 }
+function monthKey(d){ return d ? String(d).slice(0,7) : 'unknown'; }
+function monthLabel(key){
+  if(key === 'unknown') return 'No Date';
+  const [y,m] = key.split('-');
+  return new Date(parseInt(y), parseInt(m)-1, 1).toLocaleString('en-US', { month:'long', year:'numeric' });
+}
 
 // ===================== NAVIGATION =====================
 function switchSection(sectionId){
@@ -665,6 +684,7 @@ function switchSection(sectionId){
   window.scrollTo(0,0);
   if(sectionId === 'dashboard') renderDashboard();
   if(sectionId === 'loans') renderLoansTable();
+  if(sectionId === 'profit'){ currentProfitMonth = null; renderProfitTable(); }
 }
 document.querySelectorAll('.nav-item, .bn-item').forEach(item=>{
   item.addEventListener('click', ()=> switchSection(item.dataset.section));
@@ -755,6 +775,7 @@ function deleteLoan(id){
   cloudDeleteLoan(id);
   renderLoansTable(document.getElementById('loansSearch').value);
   renderDashboard();
+  renderProfitTable();
 }
 
 // ===================== LOANS TABLE =====================
@@ -827,6 +848,69 @@ function renderDashboard(){
   html += '</tbody></table>';
   recentWrap.innerHTML = html;
 }
+
+// ===================== PROFIT (interest only) =====================
+let currentProfitMonth = null;
+
+function buildProfitGroups(){
+  const loans = loadLoans();
+  const cols = loadCollections().filter(c => parseFloat(c.interest||0) > 0);
+  const groups = {};
+  cols.forEach(c=>{
+    const key = monthKey(c.date);
+    if(!groups[key]) groups[key] = [];
+    const loan = loans.find(l=>l.id === c.loanId);
+    groups[key].push({ borrower: loan ? loan.borrowerName : 'Deleted loan', amount: parseFloat(c.interest||0), date: c.date, note: c.note||'' });
+  });
+  return groups;
+}
+
+function renderProfitTable(){
+  const wrap = document.getElementById('profitTableWrap');
+  if(!wrap) return;
+  const groups = buildProfitGroups();
+  const keys = Object.keys(groups).sort().reverse();
+
+  if(keys.length === 0){
+    currentProfitMonth = null;
+    wrap.innerHTML = '<div class="empty">Abhi tak koi profit (interest) collect nahi hua.</div>';
+    return;
+  }
+
+  // Month detail view — us mahine kis-kis se kitna interest aaya
+  if(currentProfitMonth && groups[currentProfitMonth]){
+    const entries = groups[currentProfitMonth].slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const total = entries.reduce((s,e)=>s+e.amount,0);
+    let html = '<button class="secondary" style="margin:0 0 14px 0;" onclick="backToProfitMonths()">&larr; Back to Months</button>';
+    html += '<div class="cards" style="margin-bottom:8px;"><div class="card"><div class="label">Total Profit — ' + monthLabel(currentProfitMonth) + '</div><div class="value green">' + fmt(total) + ' KD</div></div></div>';
+    html += '<table><thead><tr><th>Borrower</th><th>Interest (Profit)</th><th>Date</th><th>Note</th></tr></thead><tbody>';
+    entries.forEach(e=>{
+      html += '<tr><td>' + escapeHtml(e.borrower) + '</td><td style="color:var(--green);">' + fmt(e.amount) + ' KD</td><td>' + fmtDate(e.date) + '</td><td>' + escapeHtml(e.note || '-') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    return;
+  }
+  currentProfitMonth = null;
+
+  // Month list — kis mahine kitna profit
+  const grand = keys.reduce((s,k)=> s + groups[k].reduce((a,e)=>a+e.amount,0), 0);
+  let html = '<div class="cards" style="margin-bottom:14px;"><div class="card"><div class="label">Total Profit (All Time)</div><div class="value green">' + fmt(grand) + ' KD</div></div></div>';
+  html += '<table><thead><tr><th>Month</th><th>Total Profit</th><th># Entries</th></tr></thead><tbody>';
+  keys.forEach(k=>{
+    const total = groups[k].reduce((a,e)=>a+e.amount,0);
+    html += '<tr>' +
+      '<td><span class="borrower-link" onclick="openProfitMonth(\'' + k + '\')">' + monthLabel(k) + '</span></td>' +
+      '<td><strong>' + fmt(total) + ' KD</strong></td>' +
+      '<td>' + groups[k].length + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function openProfitMonth(key){ currentProfitMonth = key; renderProfitTable(); window.scrollTo(0,0); }
+function backToProfitMonths(){ currentProfitMonth = null; renderProfitTable(); }
 
 // ===================== BORROWER DETAIL =====================
 let currentDetailLoanId = null;
@@ -953,6 +1037,7 @@ document.getElementById('collectionForm').addEventListener('submit', function(e)
   renderDetail();
   renderDashboard();
   renderLoansTable(document.getElementById('loansSearch').value);
+  renderProfitTable();
 });
 
 function deleteCollection(id){
@@ -962,6 +1047,7 @@ function deleteCollection(id){
   renderDetail();
   renderDashboard();
   renderLoansTable(document.getElementById('loansSearch').value);
+  renderProfitTable();
 }
 
 // --- Row action dropdown (Edit/Delete) — works for loans + collections ---
@@ -1076,7 +1162,7 @@ function doLogin(){
   const pw = document.getElementById('loginPassword').value;
   if(pw !== APP_PASSWORD){ document.getElementById('loginError').style.display = 'block'; return; }
   document.getElementById('loginError').style.display = 'none';
-  sessionStorage.setItem('shree2_logged_in', '1');
+  localStorage.setItem('shree2_logged_in', '1');
   startApp();
 }
 
@@ -1085,6 +1171,7 @@ function startApp(){
   document.getElementById('loanDate').valueAsDate = new Date();
   renderDashboard();
   renderLoansTable();
+  renderProfitTable();
   startCloudSync();
 }
 
@@ -1118,8 +1205,8 @@ if('serviceWorker' in navigator){
   });
 }
 
-// Boot: login gate ya seedha app
-if(sessionStorage.getItem('shree2_logged_in') === '1'){
+// Boot: ek baar login karne ke baad hamesha auto-login (localStorage me yaad rehta hai)
+if(localStorage.getItem('shree2_logged_in') === '1'){
   startApp();
 } else {
   document.getElementById('loginGate').style.display = 'flex';
