@@ -438,7 +438,14 @@
         Add Loan
       </button>
     </div>
-    <input type="text" id="loansSearch" placeholder="Search borrower name..." style="max-width:400px; margin:16px 0;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:16px 0;">
+      <input type="text" id="loansSearch" placeholder="Search borrower name..." style="flex:1; min-width:200px; max-width:400px; margin:0;">
+      <select id="loansStatusFilter" style="width:160px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; background:#fff; color:var(--text); font-weight:600;">
+        <option value="all">Sabhi (All)</option>
+        <option value="active">Active</option>
+        <option value="complete">Complete</option>
+      </select>
+    </div>
     <div id="loansTableWrap"></div>
   </div>
 
@@ -781,17 +788,31 @@ function deleteLoan(id){
 // ===================== LOANS TABLE =====================
 function renderLoansTable(filterText){
   filterText = (filterText || '').toLowerCase();
+  const statusEl = document.getElementById('loansStatusFilter');
+  const statusFilter = statusEl ? statusEl.value : 'all';
   let loans = loadLoans();
   if(filterText){
     loans = loans.filter(l => (l.borrowerName||'').toLowerCase().includes(filterText));
   }
+  if(statusFilter === 'active'){
+    loans = loans.filter(l => !isLoanCompleted(l));
+  } else if(statusFilter === 'complete'){
+    loans = loans.filter(l => isLoanCompleted(l));
+  }
   const wrap = document.getElementById('loansTableWrap');
   if(loans.length === 0){
-    wrap.innerHTML = '<div class="empty">' + (filterText ? 'Is naam se koi loan nahi mila.' : 'Koi loan abhi add nahi hua. Upar "+ Add Loan" se add karo.') + '</div>';
+    const emptyMsg = filterText
+      ? 'Is naam se koi loan nahi mila.'
+      : (statusFilter === 'active' ? 'Koi active loan nahi hai.'
+        : statusFilter === 'complete' ? 'Koi complete loan nahi hai.'
+        : 'Koi loan abhi add nahi hua. Upar "+ Add Loan" se add karo.');
+    wrap.innerHTML = '<div class="empty">' + emptyMsg + '</div>';
     return;
   }
+  // Newest first, then active loans on top and completed ones at the bottom
+  const ordered = loans.slice().reverse().sort((a,b)=> (isLoanCompleted(a)?1:0) - (isLoanCompleted(b)?1:0));
   let html = '<table><thead><tr><th>Borrower</th><th>Amount</th><th>Status</th><th style="text-align:right;">Action</th></tr></thead><tbody>';
-  loans.slice().reverse().forEach(loan=>{
+  ordered.forEach(loan=>{
     const statusBadge = isLoanCompleted(loan)
       ? '<span class="badge done">✔ Complete</span>'
       : '<span class="badge active">Active</span>';
@@ -809,6 +830,9 @@ function renderLoansTable(filterText){
 }
 document.getElementById('loansSearch').addEventListener('input', function(){
   renderLoansTable(this.value);
+});
+document.getElementById('loansStatusFilter').addEventListener('change', function(){
+  renderLoansTable(document.getElementById('loansSearch').value);
 });
 
 // ===================== COLLECTION HELPERS =====================
